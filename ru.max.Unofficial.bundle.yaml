@@ -2,16 +2,13 @@ app-id: ru.max.Unofficial
 runtime: org.freedesktop.Platform
 runtime-version: "24.08"
 sdk: org.freedesktop.Sdk
-base: org.electronjs.Electron2.BaseApp
-base-version: "24.08"
 command: run_max.sh
 separate-locales: false
 
 finish-args:
   - --share=network
   - --share=ipc
-  - --socket=wayland
-  - --socket=fallback-x11
+  - --socket=x11
   - --socket=pulseaudio
   - --device=all
   - --filesystem=xdg-run/pipewire-0
@@ -21,7 +18,22 @@ finish-args:
   - --talk-name=org.freedesktop.ScreenSaver
   - --env=GTK_USE_PORTAL=1
 
+cleanup:
+  - /include
+  - /lib/cmake
+  - /lib/*/cmake
+  - /lib/pkgconfig
+  - /mkspecs
+  - /share/aclocal
+  - /share/doc
+  - /share/et
+  - /share/examples
+  - /share/man
+  - "*.la"
+  - "*.a"
+
 modules:
+  - max-deps.yaml
   - name: max
     buildsystem: simple
     build-commands:
@@ -29,7 +41,11 @@ modules:
       - install -Dm644 ru.max.Unofficial.desktop /app/share/applications/ru.max.Unofficial.desktop
       - install -Dm644 ru.max.Unofficial.metainfo.xml /app/share/metainfo/ru.max.Unofficial.metainfo.xml
       - install -Dm644 ru.max.Unofficial.png /app/share/icons/hicolor/512x512/apps/ru.max.Unofficial.png
-      - cp -r unpacked_rpm/usr/* /app/opt/ || cp -r unpacked_rpm/opt/* /app/opt/ || true
+      - install -Dm644 krb5.conf /app/etc/krb5.conf
+      - mkdir -p /app/extra
+      - cp -a max-payload /app/extra/max
+      - test -x /app/extra/max/bin/max
+      - ln -sfn ../bin/max-service/lib64/libpulsecommon-14.0.so /app/extra/max/lib64/libpulsecommon-14.0.so
     sources:
       - type: file
         path: run_max.sh
@@ -39,5 +55,8 @@ modules:
         path: ru.max.Unofficial.metainfo.xml
       - type: file
         path: ru.max.Unofficial.png
+      - type: file
+        path: krb5.conf
       - type: dir
-        path: unpacked_rpm
+        path: stage/max
+        dest: max-payload

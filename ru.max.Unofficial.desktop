@@ -2,7 +2,7 @@
 Type=Application
 Name=MAX
 Comment=Мессенджер MAX (неофициальная сборка)
-Exec=/app/bin/run_max.sh
+Exec=run_max.sh %U
 Icon=ru.max.Unofficial
 Terminal=false
 Categories=Network;InstantMessaging;
