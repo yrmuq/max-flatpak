@@ -1,0 +1,7 @@
+[Flatpak Repo]
+Title=MAX Unofficial Repository
+Url=https://yrmuq.github.io/max-package/
+Homepage=https://github.com/yrmuq/max-package
+Comment=Неофициальный репозиторий Flatpak-пакета мессенджера MAX
+Description=Автоматически обновляемая сборка MAX с полной изоляцией в песочнице
+GPGVerify=false
