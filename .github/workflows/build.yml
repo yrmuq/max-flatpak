@@ -129,40 +129,40 @@ jobs:
           
           # Replace script blocks with file sources using Python
           python3 << 'PYTHON_SCRIPT'
-import re
-
-with open('ru.max.Unofficial.build.yaml', 'r') as f:
-    content = f.read()
-
-# Replace first script block (run_max.sh)
-content = re.sub(
-    r'- type: script\s+dest-filename: run_max\.sh\s+commands:\s+- exec echo "Placeholder"',
-    '- type: file\n        path: run_max_real.sh',
-    content,
-    count=1
-)
-
-# Replace second script block (apply_extra)
-content = re.sub(
-    r'- type: script\s+dest-filename: apply_extra\s+commands:\s+- exec echo "Placeholder"',
-    '- type: file\n        path: apply_extra_real.sh',
-    content,
-    count=1
-)
-
-# Update install commands
-content = content.replace(
-    'install -Dm755 run_max.sh /app/bin/run_max.sh',
-    'install -Dm755 run_max_real.sh /app/bin/run_max.sh'
-)
-content = content.replace(
-    'install -Dm755 apply_extra /app/bin/apply_extra',
-    'install -Dm755 apply_extra_real.sh /app/bin/apply_extra'
-)
-
-with open('ru.max.Unofficial.build.yaml', 'w') as f:
-    f.write(content)
-PYTHON_SCRIPT
+          import re
+          
+          with open('ru.max.Unofficial.build.yaml', 'r') as f:
+              content = f.read()
+          
+          # Replace first script block (run_max.sh)
+          content = re.sub(
+              r'- type: script\s+dest-filename: run_max\.sh\s+commands:\s+- exec echo "Placeholder"',
+              '- type: file\n        path: run_max_real.sh',
+              content,
+              count=1
+          )
+          
+          # Replace second script block (apply_extra)
+          content = re.sub(
+              r'- type: script\s+dest-filename: apply_extra\s+commands:\s+- exec echo "Placeholder"',
+              '- type: file\n        path: apply_extra_real.sh',
+              content,
+              count=1
+          )
+          
+          # Update install commands
+          content = content.replace(
+              'install -Dm755 run_max.sh /app/bin/run_max.sh',
+              'install -Dm755 run_max_real.sh /app/bin/run_max.sh'
+          )
+          content = content.replace(
+              'install -Dm755 apply_extra /app/bin/apply_extra',
+              'install -Dm755 apply_extra_real.sh /app/bin/apply_extra'
+          )
+          
+          with open('ru.max.Unofficial.build.yaml', 'w') as f:
+              f.write(content)
+          PYTHON_SCRIPT
       
       - name: Build extra-data Flatpak for GitHub Pages
         if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
