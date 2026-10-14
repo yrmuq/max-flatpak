@@ -126,10 +126,8 @@ jobs:
           
           sed -i '/- type: script/,/- exec echo "Placeholder"/c\      - type: file\n        path: run_max_real.sh' ru.max.Unofficial.build.yaml
           sed -i '/- type: script/,/- exec echo "Placeholder"/c\      - type: file\n        path: apply_extra_real.sh' ru.max.Unofficial.build.yaml
-          sed -i 's|dest-filename: run_max.sh|path: run_max_real.sh|g' ru.max.Unofficial.build.yaml
-          sed -i 's|dest-filename: apply_extra|path: apply_extra_real.sh|g' ru.max.Unofficial.build.yaml
-          sed -i 's|install -Dm755 run_max.sh|install -Dm755 run_max_real.sh /app/bin/run_max.sh|g' ru.max.Unofficial.build.yaml
-          sed -i 's|install -Dm755 apply_extra|install -Dm755 apply_extra_real.sh /app/bin/apply_extra|g' ru.max.Unofficial.build.yaml
+          sed -i 's|install -Dm755 run_max.sh /app/bin/run_max.sh|install -Dm755 run_max_real.sh /app/bin/run_max.sh|g' ru.max.Unofficial.build.yaml
+          sed -i 's|install -Dm755 apply_extra /app/bin/apply_extra|install -Dm755 apply_extra_real.sh /app/bin/apply_extra|g' ru.max.Unofficial.build.yaml
       
       - name: Build extra-data Flatpak for GitHub Pages
         if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
