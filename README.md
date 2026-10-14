@@ -1,4 +1,4 @@
-# MAX Flatpak (неофициальная сборка)
+# MAX Flatpak (неофициальная сборка, в разработке, сейчас не работает)
 
 [![Build Status](https://github.com/yrmuq/max-package/actions/workflows/build.yml/badge.svg)](https://github.com/yrmuq/max-package/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/yrmuq/max-package)](https://github.com/yrmuq/max-package/releases/latest)
