@@ -1,0 +1,58 @@
+name: max-deps
+buildsystem: simple
+build-commands:
+  - "true"
+modules:
+  - name: xorg-font-util
+    buildsystem: autotools
+    sources:
+      - type: git
+        url: https://gitlab.freedesktop.org/xorg/font/util.git
+        commit: 5c92c11482e017fa7210a71b6f44e40042816209
+        tag: font-util-1.4.2
+    cleanup:
+      - /bin
+  - name: libfontenc
+    buildsystem: autotools
+    sources:
+      - type: git
+        url: https://gitlab.freedesktop.org/xorg/lib/libfontenc.git
+        commit: 780d1f6f192a331de7b298a96e23ebc44d2a884b
+        tag: libfontenc-1.1.9
+  - name: libXmu
+    buildsystem: autotools
+    sources:
+      - type: git
+        url: https://gitlab.freedesktop.org/xorg/lib/libxmu.git
+        commit: cdf280f6611932f79ab872832974e8043b1cad6d
+        tag: libXmu-1.3.1
+  - name: libXaw
+    buildsystem: autotools
+    sources:
+      - type: git
+        url: https://gitlab.freedesktop.org/xorg/lib/libxaw.git
+        commit: f14ba54e9c7e415a05e33dd0b3b5f96e5de05c8b
+        tag: libXaw-1.0.16
+  - name: libXRes
+    buildsystem: autotools
+    sources:
+      - type: git
+        url: https://gitlab.freedesktop.org/xorg/lib/libxres.git
+        commit: 30c789e5065f7af7d6a03c09e3ceb073ed810bdd
+        tag: libXres-1.2.3
+  - name: krb5
+    buildsystem: autotools
+    subdir: src
+    config-opts:
+      - --localstatedir=/var/lib
+      - --sbindir=${FLATPAK_DEST}/bin
+      - --disable-rpath
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://kerberos.org/dist/krb5/1.22/krb5-1.22.2.tar.gz
+        sha256: 3243ffbc8ea4d4ac22ddc7dd2a1dc54c57874c40648b60ff97009763554eaf13
+      - type: patch
+        path: krb5-1.22.patch
+    cleanup:
+      - /bin

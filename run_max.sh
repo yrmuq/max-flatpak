@@ -1,18 +1,18 @@
-#!/bin/bash
+#!/bin/sh
 set -eu
 
-export TMPDIR="$XDG_RUNTIME_DIR/app/$FLATPAK_ID"
-mkdir -p "$TMPDIR"
-export GTK_USE_PORTAL=1
+MAX_BIN=/app/extra/max/bin/max
 
-MAIN_BINARY=$(find /app/extra /app/opt -maxdepth 4 -type f -executable -iname "max" 2>/dev/null | head -n 1)
-
-if [ -z "$MAIN_BINARY" ]; then
-    echo "Error: MAX binary not found"
+if [ ! -x "$MAX_BIN" ]; then
+    echo "Error: MAX binary not found at $MAX_BIN" >&2
+    echo "Searched tree:" >&2
+    find /app/extra /app/opt -maxdepth 6 \( -type f -o -type l \) 2>/dev/null | head -n 40 >&2 || true
     exit 1
 fi
 
-exec zypak-wrapper "$MAIN_BINARY" \
-    --enable-features=UseOzonePlatform,WebRTCPipeWireCapturer,WaylandWindowDecorations \
-    --ozone-platform-hint=auto \
-    "$@"
+# This MAX build is Qt and only speaks X11. On Wayland it runs through XWayland.
+if [ -z "${QT_QPA_PLATFORM:-}" ]; then
+    export QT_QPA_PLATFORM=xcb
+fi
+
+exec "$MAX_BIN" "$@"
