@@ -1,0 +1,5 @@
+#!/bin/bash
+set -eu
+
+rpm2cpio max.rpm | cpio -idm
+rm -f max.rpm
