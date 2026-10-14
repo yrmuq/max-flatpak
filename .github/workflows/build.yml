@@ -1,0 +1,206 @@
+name: Build and Publish MAX Flatpak
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder curl cpio rpm2cpio
+          flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
+      
+      - name: Fetch latest MAX version
+        id: fetch_version
+        run: |
+          set -eu
+          
+          curl -fsSL "https://download.max.ru/linux/rpm/el/9/x86_64/repodata/repomd.xml" -o repomd.xml
+          
+          PRIMARY_PATH=$(grep -oP 'href="\Krepodata/[^"]+-primary\.xml\.gz' repomd.xml | head -n 1)
+          
+          curl -fsSL "https://download.max.ru/linux/rpm/el/9/x86_64/$PRIMARY_PATH" -o primary.xml.gz
+          gzip -df primary.xml.gz
+          
+          RPM_FILE=$(grep -o 'MAX-[0-9.]*\.rpm' primary.xml | sort -V | tail -n 1)
+          VERSION=$(echo "$RPM_FILE" | sed -E 's/^MAX-([0-9.]+)\.rpm$/\1/')
+          
+          echo "rpm_file=$RPM_FILE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+          echo "Found MAX version: $VERSION"
+          echo "RPM file: $RPM_FILE"
+      
+      - name: Check if version already released
+        id: check_release
+        run: |
+          VERSION="${{ steps.fetch_version.outputs.version }}"
+          
+          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q "v$VERSION"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Version v$VERSION already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Version v$VERSION is new"
+          fi
+      
+      - name: Skip if scheduled and version exists
+        if: github.event_name == 'schedule' && steps.check_release.outputs.exists == 'true'
+        run: |
+          echo "Version already released and this is a scheduled run. Skipping build."
+          exit 0
+      
+      - name: Download and prepare RPM
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        id: prepare_rpm
+        run: |
+          set -eu
+          
+          RPM_FILE="${{ steps.fetch_version.outputs.rpm_file }}"
+          curl -fsSL "https://download.max.ru/linux/rpm/el/9/x86_64/$RPM_FILE" -o max.rpm
+          
+          RPM_SHA256=$(sha256sum max.rpm | awk '{print $1}')
+          RPM_SIZE=$(stat -c%s max.rpm)
+          RPM_URL="https://download.max.ru/linux/rpm/el/9/x86_64/$RPM_FILE"
+          
+          echo "sha256=$RPM_SHA256" >> $GITHUB_OUTPUT
+          echo "size=$RPM_SIZE" >> $GITHUB_OUTPUT
+          echo "url=$RPM_URL" >> $GITHUB_OUTPUT
+          
+          echo "RPM SHA256: $RPM_SHA256"
+          echo "RPM Size: $RPM_SIZE bytes"
+      
+      - name: Extract icon from RPM
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        run: |
+          set -eu
+          
+          mkdir -p unpacked_rpm
+          cd unpacked_rpm
+          rpm2cpio ../max.rpm | cpio -idm
+          cd ..
+          
+          ICON_FILE=$(find unpacked_rpm/usr/share/icons -type f -name "*.png" -exec du -b {} + | sort -rn | head -n 1 | awk '{print $2}')
+          
+          if [ -z "$ICON_FILE" ]; then
+            echo "Error: No icon found in RPM"
+            exit 1
+          fi
+          
+          cp "$ICON_FILE" ru.max.Unofficial.png
+          echo "Extracted icon: $ICON_FILE"
+      
+      - name: Prepare extra-data manifest
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        run: |
+          set -eu
+          
+          VERSION="${{ steps.fetch_version.outputs.version }}"
+          RPM_URL="${{ steps.prepare_rpm.outputs.url }}"
+          RPM_SHA256="${{ steps.prepare_rpm.outputs.sha256 }}"
+          RPM_SIZE="${{ steps.prepare_rpm.outputs.size }}"
+          
+          cp ru.max.Unofficial.yaml ru.max.Unofficial.build.yaml
+          
+          sed -i "s|RPM_URL_PLACEHOLDER|$RPM_URL|g" ru.max.Unofficial.build.yaml
+          sed -i "s|RPM_SHA256_PLACEHOLDER|$RPM_SHA256|g" ru.max.Unofficial.build.yaml
+          sed -i "s|RPM_SIZE_PLACEHOLDER|$RPM_SIZE|g" ru.max.Unofficial.build.yaml
+          
+          sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" ru.max.Unofficial.metainfo.xml
+          sed -i "s|DATE_PLACEHOLDER|$(date +%Y-%m-%d)|g" ru.max.Unofficial.metainfo.xml
+          
+          cp run_max.sh run_max_real.sh
+          cp apply_extra apply_extra_real.sh
+          
+          sed -i '/- type: script/,/- exec echo "Placeholder"/c\      - type: file\n        path: run_max_real.sh' ru.max.Unofficial.build.yaml
+          sed -i '/- type: script/,/- exec echo "Placeholder"/c\      - type: file\n        path: apply_extra_real.sh' ru.max.Unofficial.build.yaml
+          sed -i 's|dest-filename: run_max.sh|path: run_max_real.sh|g' ru.max.Unofficial.build.yaml
+          sed -i 's|dest-filename: apply_extra|path: apply_extra_real.sh|g' ru.max.Unofficial.build.yaml
+          sed -i 's|install -Dm755 run_max.sh|install -Dm755 run_max_real.sh /app/bin/run_max.sh|g' ru.max.Unofficial.build.yaml
+          sed -i 's|install -Dm755 apply_extra|install -Dm755 apply_extra_real.sh /app/bin/apply_extra|g' ru.max.Unofficial.build.yaml
+      
+      - name: Build extra-data Flatpak for GitHub Pages
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        run: |
+          set -eu
+          
+          flatpak-builder --user --force-clean --repo=public_repo build_dir_public ru.max.Unofficial.build.yaml
+          flatpak build-update-repo --generate-static-deltas public_repo
+          
+          cat > public_repo/max.flatpakrepo << 'EOF'
+          [Flatpak Repo]
+          Title=MAX Unofficial Repository
+          Url=https://yrmuq.github.io/max-package/
+          Homepage=https://github.com/yrmuq/max-package
+          Comment=Неофициальный репозиторий Flatpak-пакета мессенджера MAX
+          Description=Автоматически обновляемая сборка MAX с полной изоляцией в песочнице
+          GPGVerify=false
+          EOF
+          
+          touch public_repo/.nojekyll
+      
+      - name: Build bundle Flatpak for GitHub Releases
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        run: |
+          set -eu
+          
+          flatpak-builder --user --force-clean --repo=bundle_repo build_dir_bundle ru.max.Unofficial.bundle.yaml
+          
+          flatpak build-bundle bundle_repo MAX.flatpak ru.max.Unofficial \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
+            --repo-url=https://yrmuq.github.io/max-package/
+      
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public_repo
+          force_orphan: true
+      
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.fetch_version.outputs.version }}
+          name: MAX v${{ steps.fetch_version.outputs.version }}
+          body: |
+            ## MAX v${{ steps.fetch_version.outputs.version }}
+            
+            Автоматическая сборка мессенджера MAX в изолированной песочнице Flatpak.
+            
+            **Оригинальный RPM:** `${{ steps.fetch_version.outputs.rpm_file }}`
+            
+            **SHA256:** `${{ steps.prepare_rpm.outputs.sha256 }}`
+            
+            ### Установка
+            
+            **Способ 1 (рекомендуется, с автообновлением):**
+            ```bash
+            flatpak remote-add --user --no-gpg-verify max-repo https://yrmuq.github.io/max-package/
+            flatpak install --user max-repo ru.max.Unofficial
+            ```
+            
+            **Способ 2 (одиночный файл):**
+            Скачайте `MAX.flatpak` и установите:
+            ```bash
+            flatpak install --user MAX.flatpak
+            ```
+            
+            ### Запуск
+            ```bash
+            flatpak run ru.max.Unofficial
+            ```
+          files: |
+            MAX.flatpak
+          token: ${{ secrets.GITHUB_TOKEN }}

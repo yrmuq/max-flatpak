@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=MAX
+Comment=Мессенджер MAX (неофициальная сборка)
+Exec=/app/bin/run_max.sh
+Icon=ru.max.Unofficial
+Terminal=false
+Categories=Network;InstantMessaging;
+MimeType=x-scheme-handler/max;
+StartupWMClass=MAX
+StartupNotify=true

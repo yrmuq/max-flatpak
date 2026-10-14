@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>ru.max.Unofficial</id>
+  <name>MAX</name>
+  <summary>Мессенджер MAX (неофициальная сборка)</summary>
+  <description>
+    <p>
+      Неофициальная Flatpak-сборка мессенджера MAX с полной изоляцией в песочнице.
+      Оригинальный клиент от VK автоматически перепаковывается с соблюдением всех требований безопасности.
+    </p>
+    <p>
+      Особенности:
+    </p>
+    <ul>
+      <li>Полная изоляция личных папок (доступ к файлам только через системный диалог)</li>
+      <li>Нативная поддержка Wayland</li>
+      <li>Аудио- и видеозвонки через PipeWire</li>
+      <li>Демонстрация экрана и веб-камера</li>
+      <li>Системные уведомления и трей</li>
+    </ul>
+  </description>
+  <url type="homepage">https://github.com/yrmuq/max-package</url>
+  <url type="bugtracker">https://github.com/yrmuq/max-package/issues</url>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <developer_name>Неофициальная сборка (не связана с VK)</developer_name>
+  <launchable type="desktop-id">ru.max.Unofficial.desktop</launchable>
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="VERSION_PLACEHOLDER" date="DATE_PLACEHOLDER"/>
+  </releases>
+</component>

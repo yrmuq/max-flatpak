@@ -1,0 +1,12 @@
+.flatpak-builder/
+build_dir*/
+*_repo/
+*.rpm
+*.flatpak
+*.xml.gz
+*.gz
+unpacked*/
+public_repo/
+bundle_repo/
+repomd.xml
+primary.xml
