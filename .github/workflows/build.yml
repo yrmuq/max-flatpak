@@ -63,11 +63,13 @@ jobs:
       - name: Download and prepare RPM
         if: github.event_name == 'workflow_dispatch' || steps.check_release.outputs.exists == 'false'
         id: prepare_rpm
+        timeout-minutes: 10
         run: |
           set -eu
           
           RPM_FILE="${{ steps.fetch_version.outputs.rpm_file }}"
-          curl -fsSL "https://download.max.ru/linux/rpm/el/9/x86_64/$RPM_FILE" -o max.rpm
+          aria2c -x 16 -s 16 -k 1M --connect-timeout=15 --timeout=60 \
+            "https://download.max.ru/linux/rpm/el/9/x86_64/$RPM_FILE" -o max.rpm
           
           RPM_SHA256=$(sha256sum max.rpm | awk '{print $1}')
           RPM_SIZE=$(stat -c%s max.rpm)
