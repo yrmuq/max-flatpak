@@ -26,7 +26,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y flatpak flatpak-builder curl libarchive-tools
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+          flatpak install --user -y flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.08
 
       - name: Fetch latest MAX version
         id: fetch_version
@@ -172,13 +172,7 @@ jobs:
 
             ### Установка
 
-            **Способ 1 (рекомендуется, с автообновлением):**
-            ```bash
-            flatpak remote-add --user --if-not-exists --no-gpg-verify max-repo https://yrmuq.github.io/max-package/
-            flatpak install --user max-repo ru.max.Unofficial
-            ```
-
-            **Способ 2 (одиночный файл):**
+            Скачайте `MAX.flatpak` и установите:
             ```bash
             flatpak install --user MAX.flatpak
             ```

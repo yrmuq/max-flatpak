@@ -1,12 +1,18 @@
 #!/bin/sh
 set -eu
 
-MAX_BIN=/app/extra/max/bin/max
+MAX_BIN=
+for candidate in /app/opt/max/bin/max /app/extra/max/bin/max; do
+    if [ -x "$candidate" ]; then
+        MAX_BIN=$candidate
+        break
+    fi
+done
 
-if [ ! -x "$MAX_BIN" ]; then
-    echo "Error: MAX binary not found at $MAX_BIN" >&2
-    echo "Searched tree:" >&2
-    find /app/extra /app/opt -maxdepth 6 \( -type f -o -type l \) 2>/dev/null | head -n 40 >&2 || true
+if [ -z "$MAX_BIN" ]; then
+    echo "Error: MAX binary not found" >&2
+    echo "Tried /app/opt/max/bin/max and /app/extra/max/bin/max" >&2
+    ls -la /app /app/opt /app/extra >&2 2>/dev/null || true
     exit 1
 fi
 
