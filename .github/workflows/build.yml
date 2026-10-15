@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   build:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip build]')
     runs-on: ubuntu-latest
     outputs:
       signed: ${{ steps.sign.outputs.signed }}
@@ -112,20 +113,9 @@ jobs:
           tag_name: v${{ steps.fetch_version.outputs.version }}
           name: MAX v${{ steps.fetch_version.outputs.version }}
           body: |
-            ## MAX v${{ steps.fetch_version.outputs.version }}
+            `MAX.flatpak` — полный пакет. Программа уже внутри, при установке больше ничего не качается и сама она не обновляется.
 
-            Полный Flatpak: клиент уже внутри, при установке ничего больше не скачивается.
-
-            **Оригинальный RPM:** `${{ steps.fetch_version.outputs.rpm_file }}`
-
-            **SHA256:** `${{ steps.prepare_rpm.outputs.sha256 }}`
-
-            ### Установка одним файлом
-            ```bash
-            flatpak uninstall --user ru.max.Unofficial || true
-            flatpak install --user MAX.flatpak
-            flatpak run ru.max.Unofficial
-            ```
+            `ru.max.Unofficial.flatpakref` — маленький файл с адресом. По нему Flatpak скачивает программу и потом сам забирает новые версии.
           files: |
             MAX.flatpak
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -213,25 +203,9 @@ jobs:
         with:
           tag_name: v${{ needs.build.outputs.version }}
           body: |
-            ## MAX v${{ needs.build.outputs.version }}
+            `MAX.flatpak` — полный пакет. Программа уже внутри, при установке больше ничего не качается и сама она не обновляется.
 
-            Полный клиент. Через `flatpakref` Flatpak сам забирает следующие версии.
-
-            ### Автообновление
-            ```bash
-            flatpak remote-delete --user max-repo || true
-            flatpak uninstall --user ru.max.Unofficial || true
-            flatpak install --user ru.max.Unofficial.flatpakref
-            flatpak run ru.max.Unofficial
-            ```
-
-            Дальше достаточно `flatpak update`.
-
-            ### Один файл, без автообновления
-            ```bash
-            flatpak uninstall --user ru.max.Unofficial || true
-            flatpak install --user MAX.flatpak
-            ```
+            `ru.max.Unofficial.flatpakref` — маленький файл с адресом. По нему Flatpak скачивает программу и потом сам забирает новые версии.
           files: |
             ru.max.Unofficial.flatpakref
           token: ${{ secrets.GITHUB_TOKEN }}
