@@ -161,7 +161,7 @@ jobs:
           cat > ru.max.Unofficial.flatpakref << EOF
           [Flatpak Ref]
           Name=ru.max.Unofficial
-          Branch=stable
+          Branch=master
           Title=MAX
           Url=https://yrmuq.github.io/max-package/
           SuggestRemoteName=max-unofficial
