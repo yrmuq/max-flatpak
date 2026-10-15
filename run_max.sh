@@ -16,9 +16,19 @@ if [ -z "$MAX_BIN" ]; then
     exit 1
 fi
 
-# This MAX build is Qt and only speaks X11. On Wayland it runs through XWayland.
 if [ -z "${QT_QPA_PLATFORM:-}" ]; then
     export QT_QPA_PLATFORM=xcb
+fi
+
+# Host session manager is not reachable from the sandbox.
+unset SESSION_MANAGER || true
+
+if [ -f /app/lib/libnetlink-stub.so ]; then
+    if [ -n "${LD_PRELOAD:-}" ]; then
+        export LD_PRELOAD="/app/lib/libnetlink-stub.so:$LD_PRELOAD"
+    else
+        export LD_PRELOAD=/app/lib/libnetlink-stub.so
+    fi
 fi
 
 exec "$MAX_BIN" "$@"

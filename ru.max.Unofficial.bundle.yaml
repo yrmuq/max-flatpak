@@ -42,6 +42,7 @@ modules:
       - install -Dm644 ru.max.Unofficial.metainfo.xml /app/share/metainfo/ru.max.Unofficial.metainfo.xml
       - install -Dm644 ru.max.Unofficial.png /app/share/icons/hicolor/512x512/apps/ru.max.Unofficial.png
       - install -Dm644 krb5.conf /app/etc/krb5.conf
+      - gcc -shared -fPIC -O2 -o /app/lib/libnetlink-stub.so netlink_stub.c -ldl
       - mkdir -p /app/opt
       - cp -a max-payload /app/opt/max
       - test -x /app/opt/max/bin/max
@@ -49,6 +50,8 @@ modules:
     sources:
       - type: file
         path: run_max.sh
+      - type: file
+        path: netlink_stub.c
       - type: file
         path: ru.max.Unofficial.desktop
       - type: file
