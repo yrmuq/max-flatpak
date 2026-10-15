@@ -1,7 +1,7 @@
 # MAX Flatpak (неофициальная сборка)
 
-[![Build Status](https://github.com/yrmuq/max-package/actions/workflows/build.yml/badge.svg)](https://github.com/yrmuq/max-package/actions/workflows/build.yml)
-[![Latest Release](https://img.shields.io/github/v/release/yrmuq/max-package)](https://github.com/yrmuq/max-package/releases/latest)
+[![Build Status](https://github.com/yrmuq/max-flatpak/actions/workflows/build.yml/badge.svg)](https://github.com/yrmuq/max-flatpak/actions/workflows/build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/yrmuq/max-flatpak)](https://github.com/yrmuq/max-flatpak/releases/latest)
 
 ## ⚠️ ВАЖНОЕ ПРЕДУПРЕЖДЕНИЕ
 
@@ -22,7 +22,7 @@
 
 ## Установка с автообновлением
 
-Скачайте `ru.max.Unofficial.flatpakref` со страницы [Releases](https://github.com/yrmuq/max-package/releases/latest). Это маленький файл с адресом. Сам клиент Flatpak скачает с сайта.
+Скачайте `ru.max.Unofficial.flatpakref` со страницы [Releases](https://github.com/yrmuq/max-flatpak/releases/latest). Это маленький файл с адресом. Сам клиент Flatpak скачает с сайта.
 
 ```bash
 flatpak remote-delete --user max-repo || true
