@@ -147,6 +147,7 @@ jobs:
           printf '%s\n' "$FLATPAK_GPG_KEY" | gpg --batch --homedir "$GNUPGHOME" --import
           KEYID=$(gpg --batch --homedir "$GNUPGHOME" --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
           test -n "$KEYID"
+          flatpak build-sign --gpg-homedir="$GNUPGHOME" --gpg-sign="$KEYID" bundle_repo ru.max.Unofficial master
           flatpak build-update-repo --gpg-homedir="$GNUPGHOME" --gpg-sign="$KEYID" bundle_repo
           rm -rf public_repo
           mkdir public_repo
