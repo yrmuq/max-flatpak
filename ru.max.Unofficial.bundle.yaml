@@ -16,6 +16,7 @@ finish-args:
   - --talk-name=org.freedesktop.Notifications
   - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.freedesktop.secrets
   - --env=GTK_USE_PORTAL=1
 
 cleanup:
