@@ -58,7 +58,7 @@ flatpak uninstall --user ru.max.Unofficial
 - **Источник**: официальный rpm `https://download.max.ru/linux/rpm/el/9/x86_64/`
 - Программа лежит в `/app/opt/max` и запускается как `/app/opt/max/bin/max`
 - Домашняя папка закрыта. Есть сеть, звук, камера, PipeWire, уведомления и трей.
-- GitHub Actions раз в 6 часов проверяет новый rpm. Если версия новая, собирает полный `MAX.flatpak` и кладёт его в Releases.
+- GitHub Actions раз в сутки в 15:00 UTC проверяет новый rpm. Если версия новая, собирает полный `MAX.flatpak` и кладёт его в Releases.
 
 Вопросы о самом мессенджере — в поддержку VK. Этот репозиторий отвечает только за упаковку.
 
