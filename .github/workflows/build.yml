@@ -171,6 +171,10 @@ jobs:
           EOF
           echo "signed=true" >> "$GITHUB_OUTPUT"
 
+      - name: Write directory index
+        if: steps.sign.outputs.signed == 'true'
+        run: python3 pages-index.py
+
       - name: Upload update repository
         if: steps.sign.outputs.signed == 'true'
         uses: actions/upload-pages-artifact@v3
@@ -222,7 +226,7 @@ jobs:
 
             Дальше достаточно `flatpak update`.
 
-            ### Один файл, без автообновления
+            ### Один файл, бе\u0437 \u0430\u0432\u0442\u043e\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f
             ```bash
             flatpak uninstall --user ru.max.Unofficial || true
             flatpak install --user MAX.flatpak
