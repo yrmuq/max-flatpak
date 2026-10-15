@@ -21,7 +21,9 @@ static void note(const char *msg)
     if (printed)
         return;
     printed = 1;
-    dprintf(2, "netlink-stub: %s\n", msg);
+    write(2, "netlink-stub: ", 14);
+    write(2, msg, strlen(msg));
+    write(2, "\n", 1);
 }
 
 int bind(int fd, const struct sockaddr *addr, socklen_t len)
