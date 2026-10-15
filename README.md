@@ -20,9 +20,28 @@
 
 ---
 
-## Установка
+## Установка с автообновлением
 
-Скачайте `MAX.flatpak` со страницы [Releases](https://github.com/yrmuq/max-package/releases/latest). Это полный пакет.
+Скачайте `ru.max.Unofficial.flatpakref` со страницы [Releases](https://github.com/yrmuq/max-package/releases/latest). Это маленький файл с адресом. Сам клиент Flatpak скачает с сайта.
+
+```bash
+flatpak remote-delete --user max-repo || true
+flatpak uninstall --user ru.max.Unofficial || true
+flatpak install --user ru.max.Unofficial.flatpakref
+flatpak run ru.max.Unofficial
+```
+
+Дальше обновление:
+
+```bash
+flatpak update
+```
+
+---
+
+## Установка одним файлом
+
+Скачайте `MAX.flatpak` с той же страницы. Это полный пакет без автообновления.
 
 ```bash
 flatpak uninstall --user ru.max.Unofficial || true
@@ -30,16 +49,7 @@ flatpak install --user MAX.flatpak
 flatpak run ru.max.Unofficial
 ```
 
-
----
-
-## Обновление
-
-Скачайте новый `MAX.flatpak` и поставьте его поверх:
-
-```bash
-flatpak install --user MAX.flatpak
-```
+Новую версию так же ставят поверх этой командой.
 
 ---
 
@@ -47,6 +57,7 @@ flatpak install --user MAX.flatpak
 
 ```bash
 flatpak uninstall --user ru.max.Unofficial
+flatpak remote-delete --user max-unofficial || true
 ```
 
 ---
@@ -58,7 +69,7 @@ flatpak uninstall --user ru.max.Unofficial
 - **Источник**: официальный rpm `https://download.max.ru/linux/rpm/el/9/x86_64/`
 - Программа лежит в `/app/opt/max` и запускается как `/app/opt/max/bin/max`
 - Домашняя папка закрыта. Есть сеть, звук, камера, PipeWire, уведомления и трей.
-- GitHub Actions раз в сутки в 15:00 UTC проверяет новый rpm. Если версия новая, собирает полный `MAX.flatpak` и кладёт его в Releases.
+- GitHub Actions раз в сутки в 15:00 UTC проверяет новый rpm. Если версия новая, собирает полный `MAX.flatpak`, подписывает каталог обновлений и кладёт `ru.max.Unofficial.flatpakref` в Releases.
 
 Вопросы о самом мессенджере — в поддержку VK. Этот репозиторий отвечает только за упаковку.
 

@@ -10,10 +10,15 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      signed: ${{ steps.sign.outputs.signed }}
+      version: ${{ steps.fetch_version.outputs.version }}
 
     steps:
       - name: Checkout repository
@@ -22,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder curl cpio rpm2cpio aria2
+          sudo apt-get install -y flatpak flatpak-builder curl cpio rpm2cpio aria2 gnupg
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.08
 
@@ -115,7 +120,7 @@ jobs:
 
             **SHA256:** `${{ steps.prepare_rpm.outputs.sha256 }}`
 
-            ### Установка
+            ### Установка одним файлом
             ```bash
             flatpak uninstall --user ru.max.Unofficial || true
             flatpak install --user MAX.flatpak
@@ -123,4 +128,105 @@ jobs:
             ```
           files: |
             MAX.flatpak
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign the update repository
+        id: sign
+        if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
+        env:
+          FLATPAK_GPG_KEY: ${{ secrets.FLATPAK_GPG_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLATPAK_GPG_KEY}" ]; then
+            echo "::error::Add repository secret FLATPAK_GPG_KEY, then re-run this workflow."
+            exit 1
+          fi
+          GNUPGHOME="$RUNNER_TEMP/gnupg"
+          mkdir -p "$GNUPGHOME"
+          chmod 700 "$GNUPGHOME"
+          printf '%s\n' "$FLATPAK_GPG_KEY" | gpg --batch --homedir "$GNUPGHOME" --import
+          KEYID=$(gpg --batch --homedir "$GNUPGHOME" --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
+          test -n "$KEYID"
+          flatpak build-update-repo --gpg-homedir="$GNUPGHOME" --gpg-sign="$KEYID" bundle_repo
+          rm -rf public_repo
+          mkdir public_repo
+          cp -aL bundle_repo/. public_repo/
+          if find public_repo -type l | grep -q .; then
+            echo "The repository still contains symlinks, which GitHub Pages rejects."
+            find public_repo -type l
+            exit 1
+          fi
+          touch public_repo/.nojekyll
+          GPGKEY=$(gpg --batch --homedir "$GNUPGHOME" --export "$KEYID" | base64 -w 0)
+          cat > ru.max.Unofficial.flatpakref << EOF
+          [Flatpak Ref]
+          Name=ru.max.Unofficial
+          Branch=stable
+          Title=MAX
+          Url=https://yrmuq.github.io/max-package/
+          SuggestRemoteName=max-unofficial
+          IsRuntime=false
+          GPGKey=${GPGKEY}
+          RuntimeRepo=https://dl.flathub.org/repo/flathub.flatpakrepo
+          EOF
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload update repository
+        if: steps.sign.outputs.signed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public_repo
+          include-hidden-files: true
+
+      - name: Upload flatpakref artifact
+        if: steps.sign.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpakref
+          path: ru.max.Unofficial.flatpakref
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.signed == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download flatpakref
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpakref
+
+      - name: Deploy update repository
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Add flatpakref to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.build.outputs.version }}
+          body: |
+            ## MAX v${{ needs.build.outputs.version }}
+
+            Полный клиент. Через `flatpakref` Flatpak сам забирает следующие версии.
+
+            ### Автообновление
+            ```bash
+            flatpak remote-delete --user max-repo || true
+            flatpak uninstall --user ru.max.Unofficial || true
+            flatpak install --user ru.max.Unofficial.flatpakref
+            flatpak run ru.max.Unofficial
+            ```
+
+            Дальше достаточно `flatpak update`.
+
+            ### Один файл, без автообновления
+            ```bash
+            flatpak uninstall --user ru.max.Unofficial || true
+            flatpak install --user MAX.flatpak
+            ```
+          files: |
+            ru.max.Unofficial.flatpakref
           token: ${{ secrets.GITHUB_TOKEN }}
