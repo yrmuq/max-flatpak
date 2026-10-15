@@ -154,7 +154,7 @@ jobs:
           Name=ru.max.Unofficial
           Branch=master
           Title=MAX
-          Url=https://yrmuq.github.io/max-package/
+          Url=https://yrmuq.github.io/max-flatpak/
           SuggestRemoteName=max-unofficial
           IsRuntime=false
           GPGKey=${GPGKEY}
