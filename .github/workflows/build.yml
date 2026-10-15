@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -24,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder curl libarchive-tools
+          sudo apt-get install -y flatpak flatpak-builder curl cpio rpm2cpio aria2
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak install --user -y flathub org.freedesktop.Platform//26.08 org.freedesktop.Sdk//26.08
 
@@ -32,33 +30,15 @@ jobs:
         id: fetch_version
         run: |
           set -euo pipefail
-          curl -fsSL "https://download.max.ru/linux/deb/dists/stable/main/binary-amd64/Packages" -o Packages
-          python3 << 'PY'
-          import os, re
-          from pathlib import Path
-          text = Path("Packages").read_text()
-          best = None
-          for block in text.split("\n\n"):
-              if not re.search(r"(?m)^Package: max$", block):
-                  continue
-              filename = re.search(r"(?m)^Filename: (\S+)", block).group(1)
-              name = filename.rsplit("/", 1)[-1]
-              match = re.search(r"^MAX-(.+)\.deb$", name)
-              if not match:
-                  continue
-              version = match.group(1)
-              key = tuple(int(part) for part in version.split("."))
-              if best is None or key > best[0]:
-                  best = (key, version, filename, name)
-          if best is None:
-              raise SystemExit("MAX package not found in Debian repo")
-          _, version, filename, name = best
-          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as handle:
-              handle.write(f"version={version}\n")
-              handle.write(f"filename={filename}\n")
-              handle.write(f"deb_name={name}\n")
-          print(f"Found MAX {version} ({name})")
-          PY
+          curl -fsSL "https://download.max.ru/linux/rpm/el/9/x86_64/repodata/repomd.xml" -o repomd.xml
+          PRIMARY_PATH=$(grep -oP 'href="\Krepodata/[^"]+-primary\.xml\.gz' repomd.xml | head -n 1)
+          curl -fsSL "https://download.max.ru/linux/rpm/el/9/x86_64/$PRIMARY_PATH" -o primary.xml.gz
+          gzip -df primary.xml.gz
+          RPM_FILE=$(grep -o 'MAX-[0-9.]*\.rpm' primary.xml | sort -V | tail -n 1)
+          VERSION=$(echo "$RPM_FILE" | sed -E 's/^MAX-([0-9.]+)\.rpm$/\1/')
+          echo "rpm_file=$RPM_FILE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Found MAX version: $VERSION ($RPM_FILE)"
 
       - name: Check if version already released
         id: check_release
@@ -72,88 +52,53 @@ jobs:
             echo "Version v$VERSION is new"
           fi
 
-      - name: Download and prepare DEB
+      - name: Download RPM
         if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
-        id: prepare_deb
-        timeout-minutes: 20
-        env:
-          VERSION: ${{ steps.fetch_version.outputs.version }}
-          FILENAME: ${{ steps.fetch_version.outputs.filename }}
+        id: prepare_rpm
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-          URL="https://download.max.ru/linux/deb/${FILENAME}"
-          curl -fL --retry 5 --retry-delay 2 -o MAX.deb "$URL"
-          SHA=$(sha256sum MAX.deb | awk '{print $1}')
-          SIZE=$(stat -c%s MAX.deb)
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
-          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          RPM_FILE="${{ steps.fetch_version.outputs.rpm_file }}"
+          aria2c -x 16 -s 16 -k 1M --connect-timeout=15 --timeout=60 \
+            "https://download.max.ru/linux/rpm/el/9/x86_64/$RPM_FILE" -o max.rpm
+          test -s max.rpm
+          echo "sha256=$(sha256sum max.rpm | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "size=$(stat -c%s max.rpm)" >> "$GITHUB_OUTPUT"
+          echo "url=https://download.max.ru/linux/rpm/el/9/x86_64/$RPM_FILE" >> "$GITHUB_OUTPUT"
 
+      - name: Unpack RPM into the bundle tree
+        if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
           rm -rf payload stage
-          mkdir -p payload
-          DATA=$(bsdtar -tf MAX.deb | awk '/^data\.tar/{print; exit}')
-          test -n "$DATA"
-          bsdtar -Oxf MAX.deb "$DATA" | bsdtar -xf - -C payload
-          test -d payload/usr/share/max
+          mkdir payload
+          (cd payload && rpm2cpio ../max.rpm | cpio -idm)
+          test -x payload/usr/share/max/bin/max
           mkdir -p stage
           mv payload/usr/share/max stage/max
-          test -x stage/max/bin/max
-          cp payload/usr/share/icons/hicolor/512x512/apps/max.png ru.max.Unofficial.png
+          ln -sfn ../bin/max-service/lib64/libpulsecommon-14.0.so stage/max/lib64/libpulsecommon-14.0.so
 
-          export URL SHA SIZE VERSION
-          python3 << 'PY'
-          import os
-          from datetime import date
-          from pathlib import Path
-          text = Path("ru.max.Unofficial.yaml").read_text()
-          text = text.replace("DEB_URL_PLACEHOLDER", os.environ["URL"])
-          text = text.replace("DEB_SHA256_PLACEHOLDER", os.environ["SHA"])
-          text = text.replace("DEB_SIZE_PLACEHOLDER", os.environ["SIZE"])
-          Path("ru.max.Unofficial.build.yaml").write_text(text)
-          meta = Path("ru.max.Unofficial.metainfo.xml").read_text()
-          meta = meta.replace("VERSION_PLACEHOLDER", os.environ["VERSION"])
-          meta = meta.replace("DATE_PLACEHOLDER", date.today().isoformat())
-          Path("ru.max.Unofficial.metainfo.xml").write_text(meta)
-          PY
+          ICON=$(find payload/usr/share/icons -type f -name '*.png' -printf '%s %p\n' | sort -nr | head -n 1 | cut -d' ' -f2- || true)
+          if [ -z "$ICON" ]; then
+            ICON=payload/usr/share/pixmaps/max.png
+          fi
+          test -f "$ICON"
+          cp "$ICON" ru.max.Unofficial.png
 
-          curl -fsSL -o krb5-1.22.patch https://raw.githubusercontent.com/flathub/ru.max.MAX/master/krb5-1.22.patch
-          curl -fsSL -o krb5.conf https://raw.githubusercontent.com/flathub/ru.max.MAX/master/krb5.conf
+          VERSION="${{ steps.fetch_version.outputs.version }}"
+          sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" ru.max.Unofficial.metainfo.xml
+          sed -i "s|DATE_PLACEHOLDER|$(date +%Y-%m-%d)|g" ru.max.Unofficial.metainfo.xml
+          base64 -d krb5-1.22.patch.b64 > krb5-1.22.patch
           test -s krb5-1.22.patch
-          test -s krb5.conf
 
-      - name: Build extra-data Flatpak for GitHub Pages
+      - name: Build full Flatpak bundle
         if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
         run: |
           set -euo pipefail
-          flatpak-builder --user --force-clean --repo=public_repo build_dir_public ru.max.Unofficial.build.yaml
-          flatpak build-update-repo --generate-static-deltas public_repo
-          cat > public_repo/max.flatpakrepo << 'EOF'
-          [Flatpak Repo]
-          Title=MAX Unofficial Repository
-          Url=https://yrmuq.github.io/max-package/
-          Homepage=https://github.com/yrmuq/max-package
-          Comment=Неофициальный репозиторий Flatpak-пакета мессенджера MAX
-          Description=Автоматически обновляемая сборка MAX с полной изоляцией в песочнице
-          GPGVerify=false
-          EOF
-          touch public_repo/.nojekyll
-
-      - name: Build bundle Flatpak for GitHub Releases
-        if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
-        run: |
-          set -euo pipefail
-          flatpak-builder --user --force-clean --repo=bundle_repo build_dir_bundle ru.max.Unofficial.bundle.yaml
+          flatpak-builder --user --force-clean --repo=bundle_repo build_dir ru.max.Unofficial.bundle.yaml
           flatpak build-bundle bundle_repo MAX.flatpak ru.max.Unofficial \
-            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
-            --repo-url=https://yrmuq.github.io/max-package/
-
-      - name: Deploy to GitHub Pages
-        if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public_repo
-          force_orphan: true
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+          test -s MAX.flatpak
 
       - name: Create GitHub Release
         if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
@@ -164,21 +109,16 @@ jobs:
           body: |
             ## MAX v${{ steps.fetch_version.outputs.version }}
 
-            Автоматическая сборка мессенджера MAX в изолированной песочнице Flatpak.
+            Полный Flatpak: клиент уже внутри, при установке ничего больше не скачивается.
 
-            **Оригинальный DEB:** `${{ steps.fetch_version.outputs.deb_name }}`
+            **Оригинальный RPM:** `${{ steps.fetch_version.outputs.rpm_file }}`
 
-            **SHA256:** `${{ steps.prepare_deb.outputs.sha256 }}`
+            **SHA256:** `${{ steps.prepare_rpm.outputs.sha256 }}`
 
             ### Установка
-
-            Скачайте `MAX.flatpak` и установите:
             ```bash
+            flatpak uninstall --user ru.max.Unofficial || true
             flatpak install --user MAX.flatpak
-            ```
-
-            ### Запуск
-            ```bash
             flatpak run ru.max.Unofficial
             ```
           files: |
