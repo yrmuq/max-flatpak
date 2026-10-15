@@ -30,11 +30,6 @@ flatpak install --user MAX.flatpak
 flatpak run ru.max.Unofficial
 ```
 
-Старый репозиторий `https://yrmuq.github.io/max-package/` не используйте: там тонкая сборка, которая докачивает установщик уже на компьютер. Если он был подключён:
-
-```bash
-flatpak remote-delete --user max-repo || true
-```
 
 ---
 
