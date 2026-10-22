@@ -1,18 +1,10 @@
 #!/bin/sh
 set -eu
 
-MAX_BIN=
-for candidate in /app/opt/max/bin/max /app/extra/max/bin/max; do
-    if [ -x "$candidate" ]; then
-        MAX_BIN=$candidate
-        break
-    fi
-done
+MAX_BIN=/app/opt/max/bin/max
 
-if [ -z "$MAX_BIN" ]; then
-    echo "Error: MAX binary not found" >&2
-    echo "Tried /app/opt/max/bin/max and /app/extra/max/bin/max" >&2
-    ls -la /app /app/opt /app/extra >&2 2>/dev/null || true
+if [ ! -x "$MAX_BIN" ]; then
+    echo "Error: MAX binary not found at $MAX_BIN" >&2
     exit 1
 fi
 
