@@ -48,14 +48,18 @@ jobs:
 
       - name: Check if version already released
         id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           VERSION="${{ steps.fetch_version.outputs.version }}"
-          if git ls-remote --tags origin "refs/tags/v$VERSION" | grep -q "v$VERSION"; then
+          ASSETS=$(gh api "repos/${{ github.repository }}/releases/tags/v${VERSION}" --jq '.assets[].name' 2>/dev/null || true)
+          if printf '%s\n' "$ASSETS" | grep -qx 'ru.max.Unofficial.flatpakref'; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Version v$VERSION already exists"
+            echo "Version v$VERSION is already published"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Version v$VERSION is new"
+            echo "Version v$VERSION is not fully published"
           fi
 
       - name: Download RPM
@@ -105,20 +109,6 @@ jobs:
           flatpak build-bundle bundle_repo MAX.flatpak ru.max.Unofficial \
             --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
           test -s MAX.flatpak
-
-      - name: Create GitHub Release
-        if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.fetch_version.outputs.version }}
-          name: MAX v${{ steps.fetch_version.outputs.version }}
-          body: |
-            `MAX.flatpak` — полный пакет. Программа уже внутри, при установке больше ничего не качается и сама она не обновляется.
-
-            `ru.max.Unofficial.flatpakref` — маленький файл с адресом. По нему Flatpak скачивает программу и потом сам забирает новые версии.
-          files: |
-            MAX.flatpak
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sign the update repository
         id: sign
@@ -173,6 +163,14 @@ jobs:
           path: public_repo
           include-hidden-files: true
 
+      - name: Upload flatpak bundle artifact
+        if: steps.sign.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-bundle
+          path: MAX.flatpak
+          if-no-files-found: error
+
       - name: Upload flatpakref artifact
         if: steps.sign.outputs.signed == 'true'
         uses: actions/upload-artifact@v4
@@ -189,6 +187,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Download flatpak bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak-bundle
+
       - name: Download flatpakref
         uses: actions/download-artifact@v4
         with:
@@ -198,14 +201,16 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Add flatpakref to the release
+      - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.build.outputs.version }}
+          name: MAX v${{ needs.build.outputs.version }}
           body: |
             `MAX.flatpak` — полный пакет. Программа уже внутри, при установке больше ничего не качается и сама она не обновляется.
 
             `ru.max.Unofficial.flatpakref` — маленький файл с адресом. По нему Flatpak скачивает программу и потом сам забирает новые версии.
           files: |
+            MAX.flatpak
             ru.max.Unofficial.flatpakref
           token: ${{ secrets.GITHUB_TOKEN }}
