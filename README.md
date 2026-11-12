@@ -4,10 +4,6 @@
   [![Build Status](https://github.com/yrmuq/max-flatpak/actions/workflows/build.yml/badge.svg)](https://github.com/yrmuq/max-flatpak/actions/workflows/build.yml)
   [![Latest Release](https://img.shields.io/github/v/release/yrmuq/max-flatpak)](https://github.com/yrmuq/max-flatpak/releases/latest)
   [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
-  <p>
-    Неофициальная самодостаточная сборка мессенджера <code>MAX</code> в формате <code>Flatpak</code> на базе среды выполнения <code>org.freedesktop.Platform</code>, обеспечивающая изолированный запуск в песочнице без модификации хост-системы.
-  </p>
 </div>
 
 ---
@@ -16,6 +12,10 @@
 > **Неофициальная сборка:** Это **неофициальный** пакет мессенджера `MAX`, не связанный с разработчиками `VK` или создателями оригинального приложения. По вопросам работы самого мессенджера обращайтесь в официальную поддержку `VK` — данный репозиторий отвечает исключительно за упаковку.
 >
 > **Автономная упаковка:** Сборка целиком включает официальный `rpm`-пакет с `download.max.ru`. При установке на компьютер пользователя никакие дополнительные бинарные файлы из сети не загружаются.
+
+---
+
+Неофициальная самодостаточная сборка мессенджера `MAX` в формате `Flatpak` на базе среды выполнения `org.freedesktop.Platform`, обеспечивающая изолированный запуск в песочнице без модификации хост-системы.
 
 ---
 
@@ -39,32 +39,31 @@
 
 ### Установка с автообновлением (`.flatpakref`)
 
-Скачайте файл `ru.max.Unofficial.flatpakref` со страницы [Releases](https://github.com/yrmuq/max-flatpak/releases/latest) и выполните установку:
+Скачайте файл `ru.max.Unofficial.flatpakref` со страницы [релизов](https://github.com/yrmuq/max-flatpak/releases/latest) и выполните установку:
 
 ```bash
 flatpak remote-delete --user max-repo || true
 flatpak uninstall --user ru.max.Unofficial || true
 flatpak install --user ru.max.Unofficial.flatpakref
 flatpak run ru.max.Unofficial
-
 ```
 
 Для последующего обновления пакета используйте стандартную команду:
 
 ```bash
 flatpak update
-
 ```
+
+Уже установленным приложением удобно управлять в [Warehouse](https://flathub.org/apps/io.github.flattool.Warehouse): там видны разрешения, данные и обновления. Самого MAX на Flathub нет. Warehouse не ставит этот пакет, он только управляет тем, что уже установлено с нашей страницы релизов.
 
 ### Автономная установка одним файлом (`.flatpak`)
 
-Для установки без подключения репозитория автообновлений скачайте полный бандл `MAX.flatpak` со страницы [Releases](https://www.google.com/url?sa=E&source=gmail&q=https://github.com/yrmuq/max-flatpak/releases/latest):
+Для установки без подключения репозитория автообновлений скачайте полный бандл `MAX.flatpak` со страницы [релизов](https://github.com/yrmuq/max-flatpak/releases/latest):
 
 ```bash
 flatpak uninstall --user ru.max.Unofficial || true
 flatpak install --user MAX.flatpak
 flatpak run ru.max.Unofficial
-
 ```
 
 При выходе новой версии установка выполняется повторным запуском тех же команд поверх существующего пакета.
@@ -74,7 +73,6 @@ flatpak run ru.max.Unofficial
 ```bash
 flatpak uninstall --user ru.max.Unofficial
 flatpak remote-delete --user max-unofficial || true
-
 ```
 
 ---
@@ -89,6 +87,5 @@ flatpak remote-delete --user max-unofficial || true
 
 | Компонент | Upstream | Лицензия | Детали интеграции |
 | --- | --- | --- | --- |
-| `MAX` | [download.max.ru](https://www.google.com/search?q=https://download.max.ru/linux/rpm/el/9/x86_64/) | Проприетарная (`VK`) | Официальный `rpm`-пакет `x86_64`, распакованный в `/app/opt/max`. |
+| `MAX` | [download.max.ru](https://download.max.ru/linux/rpm/el/9/x86_64/) | Проприетарная (`VK`) | Официальный `rpm`-пакет `x86_64`, распакованный в `/app/opt/max`. |
 | `Freedesktop Platform` | [freedesktop-sdk/freedesktop-sdk](https://gitlab.com/freedesktop-sdk/freedesktop-sdk) | Различные открытые лицензии | Базовая среда выполнения `org.freedesktop.Platform`. |
-
