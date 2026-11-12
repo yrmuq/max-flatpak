@@ -1,0 +1,30 @@
+name: Update bundled libraries
+
+on:
+  schedule:
+    - cron: "0 9 * * 5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check library versions
+        run: python3 scripts/bump-libs.py
+
+      - name: Commit library updates
+        run: |
+          if git diff --quiet -- max-deps.yaml; then
+            echo "No library updates"
+            exit 0
+          fi
+          git config user.name "yrmuq"
+          git config user.email "76932153+yrmuq@users.noreply.github.com"
+          git add max-deps.yaml
+          git commit -m "Update bundled libraries" -m "[skip build]"
+          git push

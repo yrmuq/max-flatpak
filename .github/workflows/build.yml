@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -98,8 +98,6 @@ jobs:
           VERSION="${{ steps.fetch_version.outputs.version }}"
           sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" ru.max.Unofficial.metainfo.xml
           sed -i "s|DATE_PLACEHOLDER|$(date +%Y-%m-%d)|g" ru.max.Unofficial.metainfo.xml
-          base64 -d krb5-1.22.patch.b64 > krb5-1.22.patch
-          test -s krb5-1.22.patch
 
       - name: Build full Flatpak bundle
         if: github.event_name != 'schedule' || steps.check_release.outputs.exists != 'true'
@@ -158,14 +156,14 @@ jobs:
 
       - name: Upload update repository
         if: steps.sign.outputs.signed == 'true'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: public_repo
           include-hidden-files: true
 
       - name: Upload flatpak bundle artifact
         if: steps.sign.outputs.signed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flatpak-bundle
           path: MAX.flatpak
@@ -173,7 +171,7 @@ jobs:
 
       - name: Upload flatpakref artifact
         if: steps.sign.outputs.signed == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flatpakref
           path: ru.max.Unofficial.flatpakref
@@ -188,21 +186,21 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Download flatpak bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: flatpak-bundle
 
       - name: Download flatpakref
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: flatpakref
 
       - name: Deploy update repository
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Publish the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ needs.build.outputs.version }}
           name: MAX v${{ needs.build.outputs.version }}

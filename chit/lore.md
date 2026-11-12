@@ -8,6 +8,7 @@
 - Ship the official MAX RPM inside the Flatpak. Do not publish a build that downloads the messenger onto the user's computer.
 - Create the release only after the update repository is signed and GitHub Pages has deployed. A later scheduled run must rebuild when the release has no `ru.max.Unofficial.flatpakref`.
 - Check the upstream package once a day. Do not poll more often.
+- A commit that only updates a bundled library or a GitHub Action must not publish a release. Those updates are included in the next build of a new MAX package.
 - Keep login data in the application's own data directory and allow both the freedesktop secret service and KWallet, so GNOME and KDE can restore the session.
 - Keep access to camera and microphone device nodes. Calls need them, and removing that access breaks a call without opening the user's files.
 - License the packaging files as GPL-3. The MAX program itself stays the proprietary upstream binary.
